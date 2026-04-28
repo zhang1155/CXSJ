@@ -47,6 +47,9 @@ function SliderRow({ label, value, onChange, min = 0, max = 100 }: {
 }
 
 export default function AIVideoGenerator({ onVideoGenerated }: AIVideoGeneratorProps) {
+  const { models, activeModel, activeModelId } = useModel();
+  const { profile } = useAuth();
+
   const [prompt, setPrompt] = useState('');
   const [negativePrompt, setNegativePrompt] = useState('');
   const [resolution, setResolution] = useState('1920x1080');
@@ -66,6 +69,15 @@ export default function AIVideoGenerator({ onVideoGenerated }: AIVideoGeneratorP
   const handleGenerate = async () => {
     if (!prompt.trim()) { toast.error('请输入视频描述'); return; }
 
+    // 从 activeModel 或 profile 获取凭证
+    const currentModel = models.find((m) => m.id === activeModelId) || activeModel;
+    const apiKey = currentModel?.apiKey || profile?.api_key || '';
+    const baseUrl = currentModel?.baseUrl || '';
+    const modelName = currentModel?.modelName || currentModel?.name || '';
+    const hasApiKey = !!apiKey;
+
+    if (!hasApiKey) { toast.error('请先在设置页面配置 API Key'); return; }
+
     setGenerating(true);
     setGeneratedUrl(null);
     try {
@@ -79,6 +91,14 @@ export default function AIVideoGenerator({ onVideoGenerated }: AIVideoGeneratorP
           fps,
           motionStrength,
           quality,
+          apiKey,
+          baseUrl,
+          modelName,
+        },
+        headers: {
+          'x-api-key': apiKey,
+          ...(baseUrl ? { 'x-base-url': baseUrl } : {}),
+          ...(modelName ? { 'x-model-name': modelName } : {}),
         },
       });
 

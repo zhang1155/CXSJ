@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-base-url, x-model-name',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -16,6 +16,10 @@ interface VideoRequest {
   fps?: number;
   motionStrength?: number;
   quality?: number;
+  // 前端直传凭证（优先级最高）
+  apiKey?: string;
+  baseUrl?: string;
+  modelName?: string;
 }
 
 // 友好错误翻译
@@ -96,17 +100,35 @@ serve(async (req: Request) => {
       );
     }
 
-    const authHeader = req.headers.get('Authorization');
-    const modelConfig = await getActiveVideoModel(authHeader);
+    // ── 凭证优先级：body > header > DB ────────────────────────────────────────
+    const apiKeyFromBody   = (body.apiKey   || '').trim();
+    const baseUrlFromBody  = (body.baseUrl  || '').trim();
+    const modelFromBody    = (body.modelName || '').trim();
 
-    if (!modelConfig) {
-      return new Response(
-        JSON.stringify({ success: false, error: '未配置可用的视频生成模型，请前往设置页面添加模型' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const apiKeyFromHeader  = (req.headers.get('x-api-key')    || '').trim();
+    const baseUrlFromHeader = (req.headers.get('x-base-url')   || '').trim();
+    const modelFromHeader   = (req.headers.get('x-model-name') || '').trim();
+
+    let apiKey    = apiKeyFromBody  || apiKeyFromHeader;
+    let baseUrl   = baseUrlFromBody || baseUrlFromHeader;
+    let modelName = modelFromBody   || modelFromHeader;
+
+    // 如果 body/header 没有完整凭证，回退到 DB 查找
+    if (!apiKey) {
+      const authHeader = req.headers.get('Authorization');
+      const modelConfig = await getActiveVideoModel(authHeader);
+
+      if (!modelConfig) {
+        return new Response(
+          JSON.stringify({ success: false, error: '未配置可用的视频生成模型，请前往设置页面添加模型' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      apiKey    = modelConfig.apiKey;
+      baseUrl   = modelConfig.baseUrl;
+      modelName = modelConfig.modelName;
     }
 
-    const { apiKey, baseUrl, modelName } = modelConfig;
     if (!apiKey || !baseUrl) {
       return new Response(
         JSON.stringify({ success: false, error: 'API Key 或接口地址未配置，请在设置页面完善模型信息' }),

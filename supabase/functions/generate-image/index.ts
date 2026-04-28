@@ -12,13 +12,20 @@ const MAX_RETRIES = 2;
 
 function pixelSizeToRatio(size: string): string {
   const r: Record<string, string> = {
-    '1792x1024': '3:2',
+    '1792x1024': '16:9',
     '1024x768':  '4:3',
     '1024x1024': '1:1',
-    '1024x1792': '2:3',
-    '1792x768':  '3:2',
+    '1024x1792': '9:16',
+    '1792x768':  '21:9',
   };
-  return r[size] || '3:2';
+  if (r[size]) return r[size];
+  const parts = size.split('x').map(Number);
+  if (parts.length === 2 && parts[0] > 0 && parts[1] > 0) {
+    const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+    const g = gcd(parts[0], parts[1]);
+    return parts[0] / g + ':' + parts[1] / g;
+  }
+  return '16:9';
 }
 
 interface ImageItem {

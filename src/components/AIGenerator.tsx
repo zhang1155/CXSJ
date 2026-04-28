@@ -124,7 +124,9 @@ export default function AIGenerator({ onImageGenerated }: AIGeneratorProps) {
     }, 400);
     try {
       // 直接使用 apiSize（像素格式），Edge Function 的 pixelSizeToRatio 会自动转换为比例格式
-      const size = selectedSize.apiSize;
+      const size = selectedSize.value === 'custom'
+        ? `${customW}x${customH}`
+        : selectedSize.apiSize;
       const result = await generateImage({
         prompt: prompt.trim(),
         size,

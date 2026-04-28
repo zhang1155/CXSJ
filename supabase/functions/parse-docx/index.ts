@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import JSZip from "https://deno.land/x/jszip@0.11.0/mod.ts";
+import JSZip from "npm:jszip";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

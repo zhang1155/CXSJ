@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/db/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { useModel } from '@/contexts/ModelContext';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';

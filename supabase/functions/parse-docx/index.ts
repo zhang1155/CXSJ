@@ -81,7 +81,7 @@ async function callDeepSeek(text: string, apiKey: string): Promise<SlideJson[]> 
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'DeepSeek-V4-flash',
         messages: [
           { role: 'system', content: EXTRACT_PROMPT },
           { role: 'user', content: text.slice(0, 12000) },

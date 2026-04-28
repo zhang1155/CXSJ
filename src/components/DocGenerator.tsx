@@ -3,6 +3,7 @@ import { supabase } from '@/db/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Progress } from '@/components/ui/progress';
 import { useModel } from '@/contexts/ModelContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import type { Slide, SlideElement } from '@/types/types';
@@ -31,8 +32,14 @@ export default function DocGenerator({ onSlidesGenerated }: DocGeneratorProps) {
   const [parsedSlides, setParsedSlides] = useState<ParsedSlide[] | null>(null);
   const [pptTitle, setPptTitle] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('DeepSeek-V4-flash');
   const deepseekKey = profile?.api_key || '';
   const hasKey = !!deepseekKey;
+
+  const modelOptions = [
+    { value: 'DeepSeek-V4-flash', label: 'DeepSeek-V4-flash' },
+    { value: 'deepseek-chat', label: 'deepseek-chat' },
+  ];
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -59,6 +66,7 @@ export default function DocGenerator({ onSlidesGenerated }: DocGeneratorProps) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('apiKey', deepseekKey);
+      formData.append('model', selectedModel);
       const { data, error } = await supabase.functions.invoke('parse-docx', { body: formData });
       if (error) {
         const errText = await error?.context?.text?.()?.catch(() => '');
@@ -177,9 +185,23 @@ export default function DocGenerator({ onSlidesGenerated }: DocGeneratorProps) {
           />
         </div>
 
+        {/* 模型选择器 */}
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">解析模型</label>
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger className="h-8 text-xs bg-secondary border-border">
+              <SelectValue placeholder="选择模型" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-border">
+              {modelOptions.map((m) => (
+                <SelectItem key={m.value} value={m.value} className="text-xs">{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* PPT 标题输入 */}
-        {file && (
-          <div>
+        {file && (          <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">PPT 标题</label>
             <input
               type="text"

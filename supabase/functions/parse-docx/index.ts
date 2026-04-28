@@ -68,7 +68,7 @@ async function extractTextFromDocx(buffer: Uint8Array): Promise<string> {
 }
 
 /** 调用 DeepSeek API 结构化文本 */
-async function callDeepSeek(text: string, apiKey: string): Promise<SlideJson[]> {
+async function callDeepSeek(text: string, apiKey: string, model: string): Promise<SlideJson[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -81,7 +81,7 @@ async function callDeepSeek(text: string, apiKey: string): Promise<SlideJson[]> 
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'DeepSeek-V4-flash',
+        model,
         messages: [
           { role: 'system', content: EXTRACT_PROMPT },
           { role: 'user', content: text.slice(0, 12000) },
@@ -131,6 +131,7 @@ serve(async (req: Request) => {
     let fileBuffer: Uint8Array | null = null;
     let deepseekApiKey = '';
     let textContent = '';
+    let selectedModel = 'DeepSeek-V4-flash';
 
     const contentType = req.headers.get('content-type') || '';
 
@@ -139,6 +140,8 @@ serve(async (req: Request) => {
       const formData = await req.formData();
       const file = formData.get('file') as File | null;
       deepseekApiKey = (formData.get('apiKey') as string) || '';
+      const modelFromBody = formData.get('model') as string | null;
+      selectedModel = modelFromBody || 'DeepSeek-V4-flash';
 
       if (!file) {
         return jsonResp({ success: false, error: '请上传 .docx 文件' }, 400);
@@ -197,7 +200,7 @@ serve(async (req: Request) => {
     }
 
     // 调用 DeepSeek 结构化
-    const slides = await callDeepSeek(rawText, deepseekApiKey);
+    const slides = await callDeepSeek(rawText, deepseekApiKey, selectedModel);
     console.log(`[parse-docx] DeepSeek 返回 ${slides.length} 页幻灯片`);
 
     return jsonResp({
